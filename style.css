@@ -786,7 +786,7 @@ input, select { font-family: inherit; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--slate-300); border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--slate-400); }
-<<<<<<< HEAD
+
 
 /* ── Nav Auth ── */
 .nav-auth { display: flex; gap: 8px; align-items: center; }
@@ -897,5 +897,4 @@ input, select { font-family: inherit; }
 }
 .radio-label input[type="radio"] { accent-color: var(--green-500); width: 16px; height: 16px; }
 .feedback-note { font-size: .82rem; text-align: center; min-height: 20px; margin-top: 4px; }
-=======
->>>>>>> 74821322e1305123a37624b748462abe99608447
+

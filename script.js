@@ -32,19 +32,13 @@ let history = JSON.parse(localStorage.getItem('carbonlens_history') || '[]');
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
-<<<<<<< HEAD
   checkAuth();
-=======
->>>>>>> 74821322e1305123a37624b748462abe99608447
   updateHeroStats();
   renderHistory();
   setupScrollEffects();
   setupMobileMenu();
-<<<<<<< HEAD
   setupStarSelector();
   loadTestimonials();
-=======
->>>>>>> 74821322e1305123a37624b748462abe99608447
   drawDonut([0, 0, 0, 0]);
 });
 
@@ -595,5 +589,4 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
-=======
->>>>>>> 74821322e1305123a37624b748462abe99608447
+
