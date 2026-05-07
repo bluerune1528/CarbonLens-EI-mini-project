@@ -2,12 +2,10 @@
   "name": "carbonlens",
   "version": "1.0.0",
   "description": "CarbonLens — Personal Carbon Footprint Tracker",
-  "main": "server.js",
+  "main": "index.html",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "npx serve .",
+    "dev": "npx serve ."
   },
-  "dependencies": {
-    "express": "^4.18.2"
-  }
+  "dependencies": {}
 }

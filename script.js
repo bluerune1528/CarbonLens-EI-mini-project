@@ -26,13 +26,26 @@ const FACTORS = {
 
 const WORLD_AVG_MONTHLY = 370; // ~4.4 t/year global avg
 
+// ── Supabase Init ──
+const SUPABASE_URL = 'https://tsvdatwjupltejnmkflq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzdmRhdHdqdXBsdGVqbm1rZmxxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNzYyODEsImV4cCI6MjA5Mzc1MjI4MX0.lNca6qrJ_yWkkISzXFGkM0Jle1OrSK-ka1U4wDNSRaI';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // ── State ──
 let currentStep = 0;
 let history = JSON.parse(localStorage.getItem('carbonlens_history') || '[]');
+let currentUser = null;
 
 // ── Init ──
-document.addEventListener('DOMContentLoaded', () => {
-  checkAuth();
+document.addEventListener('DOMContentLoaded', async () => {
+  await checkAuth();
+  
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+      checkAuth();
+    }
+  });
+
   updateHeroStats();
   renderHistory();
   setupScrollEffects();
@@ -48,11 +61,20 @@ function scrollToEl(id) {
 }
 
 function goToStep(step) {
+  // Validate step is in range 0-3
+  if (step < 0 || step > 3) {
+    console.error(`Invalid step: ${step}. Must be 0-3.`);
+    return;
+  }
   currentStep = step;
   document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.step-dot').forEach(d => d.classList.remove('active'));
-  document.getElementById(`panel-${step}`).classList.add('active');
-  document.getElementById(`step-dot-${step}`).classList.add('active');
+  
+  const panelEl = document.getElementById(`panel-${step}`);
+  const dotEl = document.getElementById(`step-dot-${step}`);
+  
+  if (panelEl) panelEl.classList.add('active');
+  if (dotEl) dotEl.classList.add('active');
 }
 
 // ── Calculation ──
@@ -62,35 +84,35 @@ function calculateFootprint() {
 
   // Transport
   const carKm = v('car-km');
-  const carType = s('car-type');
+  const carType = s('car-type') || 'petrol';
   const publicKm = v('public-km');
   const flights = v('flights');
-  const transport = (carKm * FACTORS.car[carType])
+  const transport = (carKm * (FACTORS.car[carType] || 0))
     + (publicKm * FACTORS.publicTransit)
     + (flights * FACTORS.flight / 12);
 
   // Energy
   const elecKwh = v('elec-kwh');
-  const elecSource = s('elec-source');
+  const elecSource = s('elec-source') || 'grid';
   const gasKwh = v('gas-kwh');
   const householdSize = parseInt(s('household-size')) || 1;
-  const energy = ((elecKwh * FACTORS.electricity[elecSource]) + (gasKwh * FACTORS.gas)) / householdSize;
+  const energy = ((elecKwh * (FACTORS.electricity[elecSource] || 0)) + (gasKwh * FACTORS.gas)) / householdSize;
 
   // Food
-  const dietType = s('diet-type');
+  const dietType = s('diet-type') || 'medium-meat';
   const foodWaste = v('food-waste');
-  const localFood = s('local-food');
-  const food = FACTORS.diet[dietType] * (1 + foodWaste / 100) * FACTORS.localFood[localFood];
+  const localFood = s('local-food') || 'sometimes';
+  const food = (FACTORS.diet[dietType] || 0) * (1 + foodWaste / 100) * (FACTORS.localFood[localFood] || 1);
 
   // Shopping
   const clothing = v('clothing');
   const electronics = v('electronics');
-  const recycling = s('recycling');
+  const recycling = s('recycling') || 'sometimes';
   const spending = v('spending');
   const shopping = ((clothing * FACTORS.clothing)
     + (electronics * FACTORS.electronics / 12)
     + (spending * FACTORS.spending))
-    * FACTORS.recycling[recycling];
+    * (FACTORS.recycling[recycling] || 1);
 
   const total = transport + energy + food + shopping;
 
@@ -161,13 +183,18 @@ function updateDashboard(entry) {
 
 function animateBar(id, pct) {
   requestAnimationFrame(() => {
-    document.getElementById(id).style.width = `${pct}%`;
+    const el = document.getElementById(id);
+    if (el) el.style.width = `${pct}%`;
   });
 }
 
 // ── Donut Chart (Canvas) ──
 function drawDonut(values) {
   const canvas = document.getElementById('donut-chart');
+  if (!canvas) {
+    console.warn('donut-chart canvas element not found');
+    return;
+  }
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
   const size = 220;
@@ -191,7 +218,8 @@ function drawDonut(values) {
     ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = lineWidth;
     ctx.stroke();
-    document.getElementById('chart-center-label').textContent = 'No data';
+    const centerLabel = document.getElementById('chart-center-label');
+    if (centerLabel) centerLabel.textContent = 'No data';
   } else {
     let startAngle = -Math.PI / 2;
     values.forEach((val, i) => {
@@ -207,22 +235,26 @@ function drawDonut(values) {
 
     const biggest = values.indexOf(Math.max(...values));
     const bigPct = Math.round((values[biggest] / total) * 100);
-    document.getElementById('chart-center-label').textContent = `${bigPct}% ${labels[biggest]}`;
+    const centerLabel = document.getElementById('chart-center-label');
+    if (centerLabel) centerLabel.textContent = `${bigPct}% ${labels[biggest]}`;
   }
 
   // Legend
   const legendEl = document.getElementById('chart-legend');
-  legendEl.innerHTML = labels.map((l, i) => {
-    const pct = total ? Math.round((values[i] / total) * 100) : 0;
-    return `<span class="legend-item"><span class="legend-dot" style="background:${colors[i]}"></span>${l} ${pct}%</span>`;
-  }).join('');
+  if (legendEl) {
+    legendEl.innerHTML = labels.map((l, i) => {
+      const pct = total ? Math.round((values[i] / total) * 100) : 0;
+      return `<span class="legend-item"><span class="legend-dot" style="background:${colors[i]}"></span>${l} ${pct}%</span>`;
+    }).join('');
+  }
 }
 
 // ── History ──
 function renderHistory() {
   const list = document.getElementById('history-list');
-  const empty = document.getElementById('history-empty');
   const countEl = document.getElementById('history-count');
+  
+  if (!list || !countEl) return;
 
   countEl.textContent = `${history.length} entr${history.length === 1 ? 'y' : 'ies'}`;
 
@@ -295,8 +327,12 @@ function clearHistory() {
 function updateHeroStats() {
   const entries = history.length;
   const totalTracked = history.reduce((sum, e) => sum + e.total, 0);
-  document.getElementById('hero-stat-entries').textContent = entries;
-  document.getElementById('hero-stat-total').textContent = round(totalTracked);
+  
+  const entriesEl = document.getElementById('hero-stat-entries');
+  const totalEl = document.getElementById('hero-stat-total');
+  
+  if (entriesEl) entriesEl.textContent = entries;
+  if (totalEl) totalEl.textContent = round(totalTracked);
 
   // If there's a latest entry, update dashboard too
   if (history.length > 0) {
@@ -326,62 +362,107 @@ function setupScrollEffects() {
 
 // ── Mobile Menu ──
 function setupMobileMenu() {
-  document.getElementById('mobile-menu-btn').addEventListener('click', () => {
-    document.getElementById('mobile-menu').classList.toggle('open');
+  const btn = document.getElementById('mobile-menu-btn');
+  const menu = document.getElementById('mobile-menu');
+  if (!btn || !menu) {
+    console.warn('Mobile menu elements not found');
+    return;
+  }
+  btn.addEventListener('click', () => {
+    menu.classList.toggle('open');
   });
 }
 
 function closeMobileMenu() {
   document.getElementById('mobile-menu').classList.remove('open');
 }
-<<<<<<< HEAD
 
 // ══════════════════════════════════════════
 //  Authentication
 // ══════════════════════════════════════════
 
-function getLoggedInUser() {
-  const raw = localStorage.getItem('carbonlens_user');
-  return raw ? JSON.parse(raw) : null;
-}
+async function checkAuth() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  currentUser = session?.user || null;
 
-function checkAuth() {
-  const user = getLoggedInUser();
   const authDiv = document.getElementById('nav-auth');
   const userDiv = document.getElementById('nav-user');
   const nameEl = document.getElementById('nav-user-name');
 
-  if (user) {
-    authDiv.style.display = 'none';
-    userDiv.style.display = 'flex';
-    nameEl.textContent = user.name;
+  if (currentUser) {
+    if (authDiv) authDiv.style.display = 'none';
+    if (userDiv) userDiv.style.display = 'flex';
+    if (nameEl) nameEl.textContent = currentUser.user_metadata?.name || currentUser.email;
+    
+    closeAuthModal();
+    document.body.style.overflow = '';
   } else {
-    authDiv.style.display = 'flex';
-    userDiv.style.display = 'none';
+    if (authDiv) authDiv.style.display = 'flex';
+    if (userDiv) userDiv.style.display = 'none';
+    
+    forceAuthScreen();
   }
   updateFeedbackFormState();
 }
 
+function forceAuthScreen() {
+  openAuthModal('login');
+  const closeBtn = document.querySelector('.auth-close');
+  const overlay = document.getElementById('auth-overlay');
+  if (closeBtn) closeBtn.style.display = 'none';
+  if (overlay) overlay.onclick = null;
+  document.body.style.overflow = 'hidden';
+}
+
 function openAuthModal(tab) {
-  document.getElementById('auth-overlay').classList.add('open');
-  document.getElementById('auth-modal').classList.add('open');
+  const overlay = document.getElementById('auth-overlay');
+  const modal = document.getElementById('auth-modal');
+  if (overlay) overlay.classList.add('open');
+  if (modal) modal.classList.add('open');
   switchAuthTab(tab || 'login');
 }
 
 function closeAuthModal() {
-  document.getElementById('auth-overlay').classList.remove('open');
-  document.getElementById('auth-modal').classList.remove('open');
-  document.getElementById('login-error').textContent = '';
-  document.getElementById('signup-error').textContent = '';
+  // Only allow close if logged in
+  if (!currentUser) return;
+  const overlay = document.getElementById('auth-overlay');
+  const modal = document.getElementById('auth-modal');
+  if (overlay) overlay.classList.remove('open');
+  if (modal) modal.classList.remove('open');
+  const loginErr = document.getElementById('login-error');
+  const signupErr = document.getElementById('signup-error');
+  if (loginErr) loginErr.textContent = '';
+  if (signupErr) signupErr.textContent = '';
 }
 
 function switchAuthTab(tab) {
-  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
-  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
-  document.getElementById('login-form').style.display = tab === 'login' ? 'flex' : 'none';
-  document.getElementById('signup-form').style.display = tab === 'signup' ? 'flex' : 'none';
-  document.getElementById('login-error').textContent = '';
-  document.getElementById('signup-error').textContent = '';
+  const tabLogin = document.getElementById('tab-login');
+  const tabSignup = document.getElementById('tab-signup');
+  const formLogin = document.getElementById('login-form');
+  const formSignup = document.getElementById('signup-form');
+  
+  if (tabLogin) tabLogin.classList.toggle('active', tab === 'login');
+  if (tabSignup) tabSignup.classList.toggle('active', tab === 'signup');
+  if (formLogin) formLogin.style.display = tab === 'login' ? 'flex' : 'none';
+  if (formSignup) formSignup.style.display = tab === 'signup' ? 'flex' : 'none';
+  
+  const loginErr = document.getElementById('login-error');
+  const signupErr = document.getElementById('signup-error');
+  if (loginErr) loginErr.textContent = '';
+  if (signupErr) signupErr.textContent = '';
+}
+
+async function signInWithGoogle() {
+  const errEl = document.getElementById('login-error');
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + window.location.pathname
+    }
+  });
+  if (error && errEl) {
+    errEl.textContent = error.message;
+  }
 }
 
 async function signup(e) {
@@ -391,18 +472,29 @@ async function signup(e) {
   const password = document.getElementById('signup-password').value;
   const errEl = document.getElementById('signup-error');
 
-  try {
-    const res = await fetch('/api/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password })
-    });
-    const data = await res.json();
-    if (!res.ok) { errEl.textContent = data.error; return; }
-    localStorage.setItem('carbonlens_user', JSON.stringify(data.user));
-    closeAuthModal();
-    checkAuth();
-  } catch { errEl.textContent = 'Network error. Please try again.'; }
+  if (!name || !email || !password) {
+    if (errEl) errEl.textContent = 'All fields are required.';
+    return;
+  }
+
+  const { data, error } = await supabaseClient.auth.signUp({
+    email,
+    password,
+    options: { data: { name } }
+  });
+
+  if (error) {
+    if (errEl) errEl.textContent = error.message;
+  } else {
+    if (data.session) {
+      checkAuth();
+    } else {
+      if (errEl) {
+        errEl.textContent = 'Check your email for a confirmation link.';
+        errEl.style.color = '#16a34a';
+      }
+    }
+  }
 }
 
 async function login(e) {
@@ -411,22 +503,22 @@ async function login(e) {
   const password = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-error');
 
-  try {
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await res.json();
-    if (!res.ok) { errEl.textContent = data.error; return; }
-    localStorage.setItem('carbonlens_user', JSON.stringify(data.user));
-    closeAuthModal();
+  if (!email || !password) {
+    if (errEl) errEl.textContent = 'Email and password are required.';
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    if (errEl) errEl.textContent = error.message;
+  } else {
     checkAuth();
-  } catch { errEl.textContent = 'Network error. Please try again.'; }
+  }
 }
 
-function logout() {
-  localStorage.removeItem('carbonlens_user');
+async function logout() {
+  await supabaseClient.auth.signOut();
   checkAuth();
 }
 
@@ -464,12 +556,11 @@ function setupStarSelector() {
 // ══════════════════════════════════════════
 
 function updateFeedbackFormState() {
-  const user = getLoggedInUser();
   const noteEl = document.getElementById('feedback-note');
   const btn = document.getElementById('submit-feedback-btn');
   if (!noteEl || !btn) return;
 
-  if (!user) {
+  if (!currentUser) {
     noteEl.textContent = 'Please log in to submit feedback.';
     noteEl.style.color = '#64748b';
     btn.disabled = true;
@@ -482,54 +573,74 @@ function updateFeedbackFormState() {
 }
 
 async function submitFeedback() {
-  const user = getLoggedInUser();
   const noteEl = document.getElementById('feedback-note');
-  if (!user) {
-    noteEl.textContent = 'Please log in to submit feedback.';
-    noteEl.style.color = '#dc2626';
+  if (!currentUser) {
+    if (noteEl) {
+      noteEl.textContent = 'Please log in to submit feedback.';
+      noteEl.style.color = '#dc2626';
+    }
     return;
   }
 
-  const rating = parseInt(document.getElementById('feedback-rating').value);
-  const text = document.getElementById('feedback-text').value.trim();
+  const ratingEl = document.getElementById('feedback-rating');
+  const textEl = document.getElementById('feedback-text');
+  
+  const rating = ratingEl ? parseInt(ratingEl.value) : 0;
+  const text = textEl ? textEl.value.trim() : '';
   const carbonRadio = document.querySelector('input[name="carbon-level"]:checked');
 
   if (!rating || rating < 1) {
-    noteEl.textContent = 'Please select a star rating.';
-    noteEl.style.color = '#dc2626';
+    if (noteEl) { noteEl.textContent = 'Please select a star rating.'; noteEl.style.color = '#dc2626'; }
     return;
   }
   if (!text) {
-    noteEl.textContent = 'Please write your feedback.';
-    noteEl.style.color = '#dc2626';
+    if (noteEl) { noteEl.textContent = 'Please write your feedback.'; noteEl.style.color = '#dc2626'; }
     return;
   }
   if (!carbonRadio) {
-    noteEl.textContent = 'Please select your carbon footprint level.';
-    noteEl.style.color = '#dc2626';
+    if (noteEl) { noteEl.textContent = 'Please select your carbon footprint level.'; noteEl.style.color = '#dc2626'; }
     return;
   }
 
   try {
-    const res = await fetch('/api/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: user.email, rating, text, carbonLevel: carbonRadio.value })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      noteEl.textContent = data.error;
-      noteEl.style.color = '#dc2626';
-      return;
+    const { error } = await supabaseClient
+      .from('feedbacks')
+      .insert([
+        {
+          name: currentUser.user_metadata?.name || currentUser.email,
+          email: currentUser.email,
+          rating,
+          text,
+          carbon_level: carbonRadio.value
+        }
+      ]);
+
+    if (error) throw error;
+
+    if (noteEl) {
+      noteEl.textContent = '✅ Thank you for your feedback!';
+      noteEl.style.color = '#16a34a';
     }
-    noteEl.textContent = '✅ Thank you for your feedback!';
-    noteEl.style.color = '#16a34a';
-    document.getElementById('submit-feedback-btn').disabled = true;
-    document.getElementById('submit-feedback-btn').style.opacity = '0.5';
+    
+    const btn = document.getElementById('submit-feedback-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+    }
+    
+    // Reset form visually
+    if (textEl) textEl.value = '';
+    const stars = document.querySelectorAll('#star-selector .star');
+    stars.forEach(s => s.classList.remove('selected'));
+    if (ratingEl) ratingEl.value = '0';
+    if (carbonRadio) carbonRadio.checked = false;
+
     loadTestimonials();
-  } catch {
-    noteEl.textContent = 'Network error. Please try again.';
-    noteEl.style.color = '#dc2626';
+  } catch (error) {
+    if (noteEl) {
+      noteEl.textContent = 'An error occurred. Please try again.';
+      noteEl.style.color = '#dc2626';
+    }
   }
 }
 
@@ -542,18 +653,20 @@ async function loadTestimonials() {
   if (!grid) return;
 
   try {
-    const res = await fetch('/api/feedbacks');
-    const data = await res.json();
-    const feedbacks = data.feedbacks || [];
+    const { data: feedbacks, error } = await supabaseClient
+      .from('feedbacks')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5);
 
-    if (feedbacks.length === 0) {
+    if (error) throw error;
+
+    if (!feedbacks || feedbacks.length === 0) {
       grid.innerHTML = '<div class="empty-state"><p>No testimonials yet. Be the first to share your experience!</p></div>';
       return;
     }
 
-    // Only show the first 5 feedbacks as cards
-    const displayFeedbacks = feedbacks.slice(0, 5);
-    grid.innerHTML = displayFeedbacks.map(fb => {
+    grid.innerHTML = feedbacks.map(fb => {
       const initial = fb.name ? fb.name.charAt(0).toUpperCase() : '?';
       const starsHtml = renderStars(fb.rating);
       return `
@@ -562,14 +675,13 @@ async function loadTestimonials() {
             <div class="testimonial-avatar">${initial}</div>
             <div class="testimonial-info">
               <span class="testimonial-name">${escapeHtml(fb.name)}</span>
-              <span class="testimonial-email">${escapeHtml(fb.email)}</span>
             </div>
           </div>
           <div class="testimonial-stars">${starsHtml}</div>
           <p class="testimonial-text">"${escapeHtml(fb.text)}"</p>
         </div>`;
     }).join('');
-  } catch {
+  } catch (error) {
     grid.innerHTML = '<div class="empty-state"><p>Could not load testimonials.</p></div>';
   }
 }
