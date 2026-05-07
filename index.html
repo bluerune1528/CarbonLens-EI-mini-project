@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CarbonLens — Personal Carbon Footprint Tracker</title>
+  <meta name="description" content="Track, understand, and reduce your personal carbon footprint with CarbonLens. Calculate emissions from transport, energy, food, and shopping." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="#" class="logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12a10 10 0 1 0 20 0"/><path d="M12 2a14.5 14.5 0 0 0 0 20"/><path d="M2 12h10"/><path d="M12 2v10"/></svg>
+        <span>CarbonLens</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#calculator">Calculator</a></li>
+        <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#tips">Tips</a></li>
+        <li><a href="#testimonials">Testimonials</a></li>
+        <li><a href="#history">History</a></li>
+      </ul>
+      <div class="nav-auth" id="nav-auth">
+        <button class="nav-cta" id="nav-login-btn" onclick="openAuthModal('login')">Log In</button>
+        <button class="nav-cta nav-signup-btn" id="nav-signup-btn" onclick="openAuthModal('signup')">Sign Up</button>
+      </div>
+      <div class="nav-user" id="nav-user" style="display:none">
+        <span class="nav-user-name" id="nav-user-name"></span>
+        <button class="nav-cta nav-logout-btn" onclick="logout()">Logout</button>
+      </div>
+      <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="mobile-menu" id="mobile-menu">
+      <a href="#calculator" onclick="closeMobileMenu()">Calculator</a>
+      <a href="#dashboard" onclick="closeMobileMenu()">Dashboard</a>
+      <a href="#tips" onclick="closeMobileMenu()">Tips</a>
+      <a href="#testimonials" onclick="closeMobileMenu()">Testimonials</a>
+      <a href="#history" onclick="closeMobileMenu()">History</a>
+    </div>
+  </nav>
+
+  <!--Hero-->
+  <header class="hero" id="hero">
+    <div class="hero-content">
+      <span class="hero-badge">🌿 Track your impact</span>
+      <h1>Understand Your<br /><span class="gradient-text">Carbon Footprint</span></h1>
+      <p class="hero-sub">Calculate your personal CO₂ emissions across transport, energy, food, and shopping — and discover actionable ways to reduce your environmental impact.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="scrollToEl('calculator')">Start Calculating</button>
+        <button class="btn btn-ghost" onclick="scrollToEl('dashboard')">View Dashboard</button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-pill">
+          <span class="stat-num" id="hero-stat-entries">0</span>
+          <span class="stat-label">Entries Logged</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-num" id="hero-stat-total">0</span>
+          <span class="stat-label">kg CO₂ Tracked</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-num">4</span>
+          <span class="stat-label">Categories</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="orbit-ring ring-1"></div>
+      <div class="orbit-ring ring-2"></div>
+      <div class="orbit-ring ring-3"></div>
+      <div class="globe-icon">
+        <svg viewBox="0 0 120 120" width="120" height="120">
+          <circle cx="60" cy="60" r="55" fill="none" stroke="url(#globeGrad)" stroke-width="2.5" />
+          <ellipse cx="60" cy="60" rx="30" ry="55" fill="none" stroke="url(#globeGrad)" stroke-width="1.5" />
+          <line x1="5" y1="60" x2="115" y2="60" stroke="url(#globeGrad)" stroke-width="1.2" />
+          <ellipse cx="60" cy="38" rx="48" ry="12" fill="none" stroke="url(#globeGrad)" stroke-width="1" />
+          <ellipse cx="60" cy="82" rx="48" ry="12" fill="none" stroke="url(#globeGrad)" stroke-width="1" />
+          <defs>
+            <linearGradient id="globeGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#22c55e" />
+              <stop offset="100%" stop-color="#0ea5e9" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <!--Calculator -->
+  <section class="section" id="calculator">
+    <div class="section-header">
+      <span class="section-badge">📊 Calculator</span>
+      <h2>Calculate Your Emissions</h2>
+      <p>Fill in your monthly habits across four key categories to estimate your carbon footprint.</p>
+    </div>
+
+    <div class="calc-container">
+      <!-- Step Indicator -->
+      <div class="steps-bar">
+        <button class="step-dot active" data-step="0" id="step-dot-0" onclick="goToStep(0)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <span>Transport</span>
+        </button>
+        <div class="step-line"></div>
+        <button class="step-dot" data-step="1" id="step-dot-1" onclick="goToStep(1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span>Energy</span>
+        </button>
+        <div class="step-line"></div>
+        <button class="step-dot" data-step="2" id="step-dot-2" onclick="goToStep(2)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+          <span>Food</span>
+        </button>
+        <div class="step-line"></div>
+        <button class="step-dot" data-step="3" id="step-dot-3" onclick="goToStep(3)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 8v13a1 1 0 001 1h16a1 1 0 001-1V8l-3-6zM3 8h18M16 12a4 4 0 01-8 0"/></svg>
+          <span>Shopping</span>
+        </button>
+      </div>
+
+      <!-- Step Panels -->
+      <form id="calc-form" autocomplete="off">
+        <!-- Transport -->
+        <div class="step-panel active" data-panel="0" id="panel-0">
+          <h3>🚗 Transportation</h3>
+          <p class="panel-desc">How do you get around each month?</p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="car-km">Car distance <small>(km/month)</small></label>
+              <input type="number" id="car-km" min="0" value="0" placeholder="e.g. 500" />
+            </div>
+            <div class="form-group">
+              <label for="car-type">Fuel type</label>
+              <select id="car-type">
+                <option value="petrol">Petrol</option>
+                <option value="diesel">Diesel</option>
+                <option value="electric">Electric</option>
+                <option value="hybrid">Hybrid</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="public-km">Public transit <small>(km/month)</small></label>
+              <input type="number" id="public-km" min="0" value="0" placeholder="e.g. 200" />
+            </div>
+            <div class="form-group">
+              <label for="flights">Short flights <small>(per year)</small></label>
+              <input type="number" id="flights" min="0" value="0" placeholder="e.g. 4" />
+            </div>
+          </div>
+          <div class="panel-actions">
+            <span></span>
+            <button type="button" class="btn btn-primary btn-sm" onclick="goToStep(1)">Next →</button>
+          </div>
+        </div>
+
+        <!-- Energy -->
+        <div class="step-panel" data-panel="1" id="panel-1">
+          <h3>⚡ Home Energy</h3>
+          <p class="panel-desc">Your household energy consumption.</p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="elec-kwh">Electricity <small>(kWh/month)</small></label>
+              <input type="number" id="elec-kwh" min="0" value="0" placeholder="e.g. 300" />
+            </div>
+            <div class="form-group">
+              <label for="elec-source">Electricity source</label>
+              <select id="elec-source">
+                <option value="grid">Grid (mixed)</option>
+                <option value="renewable">100% Renewable</option>
+                <option value="coal">Mostly coal</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="gas-kwh">Natural gas <small>(kWh/month)</small></label>
+              <input type="number" id="gas-kwh" min="0" value="0" placeholder="e.g. 150" />
+            </div>
+            <div class="form-group">
+              <label for="household-size">Household size</label>
+              <select id="household-size">
+                <option value="1">1 person</option>
+                <option value="2">2 people</option>
+                <option value="3">3 people</option>
+                <option value="4">4 people</option>
+                <option value="5">5+ people</option>
+              </select>
+            </div>
+          </div>
+          <div class="panel-actions">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="goToStep(0)">← Back</button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="goToStep(2)">Next →</button>
+          </div>
+        </div>
+
+        <!-- Food -->
+        <div class="step-panel" data-panel="2" id="panel-2">
+          <h3>🍽️ Food & Diet</h3>
+          <p class="panel-desc">What does your diet look like?</p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="diet-type">Diet type</label>
+              <select id="diet-type">
+                <option value="heavy-meat">Heavy meat eater</option>
+                <option value="medium-meat">Medium meat eater</option>
+                <option value="light-meat">Light meat eater</option>
+                <option value="pescatarian">Pescatarian</option>
+                <option value="vegetarian">Vegetarian</option>
+                <option value="vegan">Vegan</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="food-waste">Food waste <small>(% thrown away)</small></label>
+              <input type="number" id="food-waste" min="0" max="100" value="10" placeholder="e.g. 10" />
+            </div>
+            <div class="form-group">
+              <label for="local-food">Locally sourced food</label>
+              <select id="local-food">
+                <option value="rarely">Rarely</option>
+                <option value="sometimes">Sometimes</option>
+                <option value="mostly">Mostly</option>
+                <option value="always">Always</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="organic-food">Organic food</label>
+              <select id="organic-food">
+                <option value="never">Never</option>
+                <option value="sometimes">Sometimes</option>
+                <option value="mostly">Mostly</option>
+                <option value="always">Always</option>
+              </select>
+            </div>
+          </div>
+          <div class="panel-actions">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="goToStep(1)">← Back</button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="goToStep(3)">Next →</button>
+          </div>
+        </div>
+
+        <!-- Shopping -->
+        <div class="step-panel" data-panel="3" id="panel-3">
+          <h3>🛍️ Shopping & Lifestyle</h3>
+          <p class="panel-desc">Your consumption habits.</p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="clothing">New clothing items <small>(per month)</small></label>
+              <input type="number" id="clothing" min="0" value="0" placeholder="e.g. 3" />
+            </div>
+            <div class="form-group">
+              <label for="electronics">Electronics purchases <small>(per year)</small></label>
+              <input type="number" id="electronics" min="0" value="0" placeholder="e.g. 2" />
+            </div>
+            <div class="form-group">
+              <label for="recycling">Recycling habit</label>
+              <select id="recycling">
+                <option value="never">Never recycle</option>
+                <option value="sometimes">Sometimes</option>
+                <option value="mostly">Mostly</option>
+                <option value="always">Always recycle</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="spending">General spending <small>(₹/month)</small></label>
+              <input type="number" id="spending" min="0" value="0" placeholder="e.g. 15000" />
+            </div>
+          </div>
+          <div class="panel-actions">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="goToStep(2)">← Back</button>
+            <button type="button" class="btn btn-primary btn-sm" id="calc-submit-btn" onclick="calculateFootprint()">Calculate 🌱</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ───── Dashboard ───── -->
+  <section class="section section-alt" id="dashboard">
+    <div class="section-header">
+      <span class="section-badge">📈 Dashboard</span>
+      <h2>Your Carbon Dashboard</h2>
+      <p>A visual breakdown of your latest footprint calculation.</p>
+    </div>
+
+    <div class="dashboard-grid" id="dashboard-grid">
+      <!-- Total card -->
+      <div class="dash-card total-card">
+        <div class="dash-card-header">
+          <span class="dash-icon total-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 6v6l4 2"/></svg>
+          </span>
+          <span class="dash-label">Total Monthly</span>
+        </div>
+        <div class="dash-value" id="dash-total">— kg</div>
+        <div class="dash-sub" id="dash-annual">— kg CO₂ / year</div>
+        <div class="dash-bar-wrap">
+          <div class="dash-bar" id="dash-bar-total" style="width:0%"></div>
+        </div>
+        <small class="dash-comparison" id="dash-comparison">Enter data to see results</small>
+      </div>
+
+      <!-- Category cards -->
+      <div class="dash-card cat-card" id="card-transport">
+        <div class="dash-card-header">
+          <span class="dash-icon transport-icon">🚗</span>
+          <span class="dash-label">Transport</span>
+        </div>
+        <div class="dash-value" id="dash-transport">—</div>
+        <small>kg CO₂ / month</small>
+        <div class="dash-bar-wrap"><div class="dash-bar bar-transport" id="bar-transport" style="width:0%"></div></div>
+      </div>
+
+      <div class="dash-card cat-card" id="card-energy">
+        <div class="dash-card-header">
+          <span class="dash-icon energy-icon">⚡</span>
+          <span class="dash-label">Energy</span>
+        </div>
+        <div class="dash-value" id="dash-energy">—</div>
+        <small>kg CO₂ / month</small>
+        <div class="dash-bar-wrap"><div class="dash-bar bar-energy" id="bar-energy" style="width:0%"></div></div>
+      </div>
+
+      <div class="dash-card cat-card" id="card-food">
+        <div class="dash-card-header">
+          <span class="dash-icon food-icon">🍽️</span>
+          <span class="dash-label">Food</span>
+        </div>
+        <div class="dash-value" id="dash-food">—</div>
+        <small>kg CO₂ / month</small>
+        <div class="dash-bar-wrap"><div class="dash-bar bar-food" id="bar-food" style="width:0%"></div></div>
+      </div>
+
+      <div class="dash-card cat-card" id="card-shopping">
+        <div class="dash-card-header">
+          <span class="dash-icon shopping-icon">🛍️</span>
+          <span class="dash-label">Shopping</span>
+        </div>
+        <div class="dash-value" id="dash-shopping">—</div>
+        <small>kg CO₂ / month</small>
+        <div class="dash-bar-wrap"><div class="dash-bar bar-shopping" id="bar-shopping" style="width:0%"></div></div>
+      </div>
+
+      <!-- Donut Chart -->
+      <div class="dash-card chart-card">
+        <div class="dash-card-header">
+          <span class="dash-label">Breakdown</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="donut-chart" width="220" height="220"></canvas>
+          <div class="chart-center-label" id="chart-center-label">0%</div>
+        </div>
+        <div class="chart-legend" id="chart-legend"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── Tips ───── -->
+  <section class="section" id="tips">
+    <div class="section-header">
+      <span class="section-badge">💡 Tips</span>
+      <h2>Reduce Your Footprint</h2>
+      <p>Small changes can make a big difference. Here are science-backed ways to lower your emissions.</p>
+    </div>
+    <div class="tips-grid">
+      <div class="tip-card">
+        <div class="tip-icon">🚲</div>
+        <h4>Choose Active Transport</h4>
+        <p>Walking, cycling, or using public transport for short trips can cut transport emissions by up to 50%.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">💡</div>
+        <h4>Switch to LEDs</h4>
+        <p>LED bulbs use 75% less energy than incandescent lighting and last 25 times longer.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🥦</div>
+        <h4>Eat More Plants</h4>
+        <p>A plant-rich diet can reduce food-related emissions by 50–70% compared to a heavy meat diet.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">♻️</div>
+        <h4>Recycle & Reuse</h4>
+        <p>Recycling aluminum saves 95% of the energy needed to make new aluminum from raw materials.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🌡️</div>
+        <h4>Optimize Thermostat</h4>
+        <p>Adjusting your thermostat by just 1°C can reduce heating bills and emissions by up to 10%.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🛒</div>
+        <h4>Buy Local & Seasonal</h4>
+        <p>Locally sourced food travels fewer miles, reducing transport-related emissions significantly.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── History ───── -->
+  <section class="section section-alt" id="history">
+    <div class="section-header">
+      <span class="section-badge">📅 History</span>
+      <h2>Your Tracking History</h2>
+      <p>View past calculations saved on this device.</p>
+    </div>
+    <div class="history-container">
+      <div class="history-toolbar">
+        <span id="history-count">0 entries</span>
+        <button class="btn btn-ghost btn-sm" id="clear-history-btn" onclick="clearHistory()">Clear All</button>
+      </div>
+      <div class="history-list" id="history-list">
+        <div class="empty-state" id="history-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.35"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+          <p>No entries yet. Use the calculator above to log your first footprint.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── Testimonials ───── -->
+  <section class="section" id="testimonials">
+    <div class="section-header">
+      <span class="section-badge">⭐ Testimonials</span>
+      <h2>What Our Users Say</h2>
+      <p>Real feedback from people tracking their carbon footprint with CarbonLens.</p>
+    </div>
+    <div class="testimonials-grid" id="testimonials-grid">
+      <div class="empty-state" id="testimonials-empty">
+        <p>No testimonials yet. Be the first to share your experience!</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── Feedback Form ───── -->
+  <section class="section section-alt" id="feedback">
+    <div class="section-header">
+      <span class="section-badge">📝 Feedback</span>
+      <h2>Share Your Experience</h2>
+      <p>Rate your experience and help us improve CarbonLens.</p>
+    </div>
+    <div class="feedback-container">
+      <div class="feedback-form-card" id="feedback-form-card">
+        <div class="form-group">
+          <label>Your Rating</label>
+          <div class="star-selector" id="star-selector">
+            <span class="star" data-value="1">★</span>
+            <span class="star" data-value="2">★</span>
+            <span class="star" data-value="3">★</span>
+            <span class="star" data-value="4">★</span>
+            <span class="star" data-value="5">★</span>
+          </div>
+          <input type="hidden" id="feedback-rating" value="0" />
+        </div>
+        <div class="form-group">
+          <label for="feedback-text">Your Feedback</label>
+          <textarea id="feedback-text" rows="4" placeholder="Tell us about your experience with CarbonLens..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Is your carbon footprint above or below the average level?</label>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" name="carbon-level" value="above" /> Above Average</label>
+            <label class="radio-label"><input type="radio" name="carbon-level" value="below" /> Below Average</label>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="submit-feedback-btn" onclick="submitFeedback()">Submit Feedback</button>
+        <p class="feedback-note" id="feedback-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── Auth Modal ───── -->
+  <div class="auth-overlay" id="auth-overlay" onclick="closeAuthModal()"></div>
+  <div class="auth-modal" id="auth-modal">
+    <button class="auth-close" onclick="closeAuthModal()">&times;</button>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Log In</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Sign Up</button>
+    </div>
+    <form class="auth-form" id="login-form" onsubmit="login(event)">
+      <div class="form-group"><label for="login-email">Email</label><input type="email" id="login-email" required placeholder="you@example.com" /></div>
+      <div class="form-group"><label for="login-password">Password</label><input type="password" id="login-password" required placeholder="Your password" /></div>
+      <button type="submit" class="btn btn-primary btn-full">Log In</button>
+      <p class="auth-error" id="login-error"></p>
+    </form>
+    <form class="auth-form" id="signup-form" style="display:none" onsubmit="signup(event)">
+      <div class="form-group"><label for="signup-name">Name</label><input type="text" id="signup-name" required placeholder="Your name" /></div>
+      <div class="form-group"><label for="signup-email">Email</label><input type="email" id="signup-email" required placeholder="you@example.com" /></div>
+      <div class="form-group"><label for="signup-password">Password</label><input type="password" id="signup-password" required placeholder="Choose a password" /></div>
+      <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+      <p class="auth-error" id="signup-error"></p>
+    </form>
+  </div>
+
+  <!-- ───── Footer ───── -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12a10 10 0 1 0 20 0"/><path d="M12 2a14.5 14.5 0 0 0 0 20"/><path d="M2 12h10"/><path d="M12 2v10"/></svg>
+        <span>CarbonLens</span>
+      </div>
+      <p>Built for a greener future. All calculations are estimates based on global averages.</p>
+      <small>© 2026 CarbonLens · Mini Project</small>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

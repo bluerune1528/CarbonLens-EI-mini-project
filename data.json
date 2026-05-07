@@ -1,0 +1,10 @@
+{
+  "users": [
+    {
+      "name": "Test User",
+      "email": "test@example.com",
+      "password": "pass123"
+    }
+  ],
+  "feedbacks": []
+}
